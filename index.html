@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Кнопка с эффектами</title>
+    <title>Таблица лидеров кликов</title>
     <style>
         * {
             margin: 0;
@@ -19,6 +19,7 @@
             align-items: center;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             padding: 20px;
+            color: white;
         }
 
         .container {
@@ -29,6 +30,30 @@
             border-radius: 20px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .user-section {
+            margin-bottom: 30px;
+        }
+
+        .user-input {
+            padding: 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 25px;
+            width: 100%;
+            max-width: 300px;
+            margin-bottom: 15px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.9);
         }
 
         .magic-button {
@@ -44,17 +69,7 @@
             position: relative;
             overflow: hidden;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .magic-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s ease;
+            margin: 20px 0;
         }
 
         .magic-button:hover {
@@ -65,49 +80,233 @@
 
         .magic-button:active {
             transform: translateY(0) scale(0.98);
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
         }
 
-        .magic-button:hover::before {
-            left: 100%;
+        .stats {
+            margin: 20px 0;
+            font-size: 1.2em;
         }
 
-        .button-text {
-            position: relative;
-            z-index: 1;
+        .leaderboard {
+            margin-top: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
         }
 
-        .click-count {
-            margin-top: 20px;
-            font-size: 16px;
+        .leaderboard h2 {
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .leaderboard-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .leaderboard-rank {
+            font-weight: bold;
+            font-size: 1.2em;
+            min-width: 30px;
+        }
+
+        .leaderboard-name {
+            flex-grow: 1;
+            text-align: left;
+            margin-left: 15px;
+        }
+
+        .leaderboard-score {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #ffd700;
+        }
+
+        .current-user {
+            background: linear-gradient(45deg, rgba(255, 107, 107, 0.3), rgba(238, 90, 36, 0.3));
+            border: 2px solid #ff6b6b;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: #4CAF50;
             color: white;
-            opacity: 0.9;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: #f44336;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <button class="magic-button" onclick="handleClick()">
-            <span class="button-text">Нажми меня!</span>
-        </button>
-        <div class="click-count" id="clickCount">Нажатий: 0</div>
+        <h1>🎯 Кликер</h1>
+        
+        <div class="user-section">
+            <input type="text" class="user-input" id="userName" placeholder="Введите ваше имя" maxlength="20">
+            <button class="magic-button" onclick="handleClick()" id="clickButton">
+                <span>КЛИКНУТЬ!</span>
+            </button>
+        </div>
+
+        <div class="stats">
+            <div>Ваши клики: <span id="userClicks">0</span></div>
+            <div>Всего кликов: <span id="totalClicks">0</span></div>
+        </div>
+
+        <div class="leaderboard">
+            <h2>🏆 Таблица лидеров</h2>
+            <div id="leaderboardList">
+                <div class="leaderboard-item">Загрузка...</div>
+            </div>
+        </div>
     </div>
 
-    <script>
-        let clickCount = 0;
+    <div class="notification" id="notification">Клик сохранен!</div>
 
-        function handleClick() {
-            clickCount++;
-            document.getElementById('clickCount').textContent = `Нажатий: ${clickCount}`;
-            
-            // Анимация кнопки
-            const button = document.querySelector('.magic-button');
-            button.style.transform = 'scale(0.95)';
+    <script>
+        let userName = '';
+        let userClicks = 0;
+        let totalClicks = 0;
+
+        // Инициализация
+        document.getElementById('userName').addEventListener('change', function(e) {
+            userName = e.target.value.trim();
+            if (userName) {
+                loadUserData();
+                loadLeaderboard();
+            }
+        });
+
+        // Функция для показа уведомления
+        function showNotification(message, isError = false) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = 'notification' + (isError ? ' error' : '');
+            notification.classList.add('show');
             
             setTimeout(() => {
-                button.style.transform = '';
-            }, 100);
+                notification.classList.remove('show');
+            }, 2000);
         }
+
+        // Загрузка данных пользователя
+        async function loadUserData() {
+            try {
+                const response = await fetch('/api/user?name=' + encodeURIComponent(userName));
+                if (!response.ok) throw new Error('Ошибка загрузки');
+                
+                const data = await response.json();
+                userClicks = data.clicks || 0;
+                document.getElementById('userClicks').textContent = userClicks;
+            } catch (error) {
+                console.error('Ошибка загрузки данных:', error);
+            }
+        }
+
+        // Загрузка таблицы лидеров
+        async function loadLeaderboard() {
+            try {
+                const response = await fetch('/api/leaderboard');
+                if (!response.ok) throw new Error('Ошибка загрузки');
+                
+                const leaderboard = await response.json();
+                const leaderboardList = document.getElementById('leaderboardList');
+                leaderboardList.innerHTML = '';
+
+                leaderboard.forEach((user, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'leaderboard-item';
+                    if (user.name === userName) {
+                        item.classList.add('current-user');
+                    }
+                    
+                    item.innerHTML = `
+                        <div class="leaderboard-rank">${index + 1}</div>
+                        <div class="leaderboard-name">${user.name}</div>
+                        <div class="leaderboard-score">${user.clicks} кликов</div>
+                    `;
+                    
+                    leaderboardList.appendChild(item);
+                });
+            } catch (error) {
+                console.error('Ошибка загрузки таблицы лидеров:', error);
+            }
+        }
+
+        // Обработка клика
+        async function handleClick() {
+            if (!userName) {
+                showNotification('Введите имя сначала!', true);
+                return;
+            }
+
+            const button = document.getElementById('clickButton');
+            button.classList.add('loading');
+
+            try {
+                const response = await fetch('/api/click', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name: userName })
+                });
+
+                if (!response.ok) throw new Error('Ошибка сервера');
+
+                const data = await response.json();
+                
+                userClicks = data.userClicks;
+                totalClicks = data.totalClicks;
+
+                document.getElementById('userClicks').textContent = userClicks;
+                document.getElementById('totalClicks').textContent = totalClicks;
+
+                showNotification('+1 клик!');
+                loadLeaderboard();
+
+            } catch (error) {
+                console.error('Ошибка:', error);
+                showNotification('Ошибка сохранения', true);
+            } finally {
+                button.classList.remove('loading');
+            }
+        }
+
+        // Автозагрузка при старте
+        setTimeout(() => {
+            loadLeaderboard();
+        }, 1000);
     </script>
 </body>
 </html>
